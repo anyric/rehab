@@ -5,11 +5,16 @@ from flask import (
     redirect, render_template, 
     request, url_for
 )
+from flask_mail import (
+    Mail, Message
+)
 
 
 def create_app(test_config=None):
+    mail = Mail()
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+    mail.init_app(app)
     app.config.from_mapping(
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'rehab.sqlite'),
@@ -28,10 +33,26 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    @app.route('/')
+    @app.route('/', methods=('GET',))
     def index():
         return render_template('index.html')
     
+    @app.route('/send_email', methods=('GET', 'POST'))
+    def send_email():
+        if request.method == 'POST':
+            name = request.form['name']
+            email = request.form['email']
+            subject = request.form['subject']
+            message = name + ' ' + email + ' ' + request.form['message']
+            recipient = 'lulunicholas@gmail.com'
+
+            msg = Message(recipients=recipient,
+                      body=message,
+                      subject=subject)
+            mail.send(msg)
+
+        return render_template('index.html')
+
     from . import db
     db.init_app(app)
 
