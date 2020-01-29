@@ -1,5 +1,5 @@
 import os
-
+from threading import Thread
 from flask import ( 
     Flask, Blueprint, flash, g, 
     redirect, render_template, 
@@ -14,9 +14,15 @@ def create_app(test_config=None):
     mail = Mail()
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+    app.config['MAIL_SERVER']='smtp.gmail.com'
+    app.config['MAIL_PORT'] = 465
+    app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+    app.config['MAIL_USE_TLS'] = False
+    app.config['MAIL_USE_SSL'] = True
     mail.init_app(app)
     app.config.from_mapping(
-        SECRET_KEY='dev',
+        SECRET_KEY='q!omqo&mqomq*omomdhdhdhj@kejsnkfj%',
         DATABASE=os.path.join(app.instance_path, 'rehab.sqlite'),
     )
 
@@ -36,21 +42,29 @@ def create_app(test_config=None):
     @app.route('/', methods=('GET',))
     def index():
         return render_template('index.html')
-    
+
+    def send_async_email(app, msg):
+        with app.app_context():
+            try:
+                mail.send(msg)
+
+            except Exception as e:
+                print(str(e))
+
+
     @app.route('/send_email', methods=('GET', 'POST'))
     def send_email():
         if request.method == 'POST':
             name = request.form['name']
             email = request.form['email']
             subject = request.form['subject']
-            message = name + ' ' + email + ' ' + request.form['message']
-            recipient = 'lulunicholas@gmail.com'
+            message = 'My name is ' + name + ' and email is ' + email + '\n' +  request.form['message']
+            recipient = os.getenv('MAIL_RECIPIENTS').split(",")
 
-            msg = Message(recipients=recipient,
-                      body=message,
-                      subject=subject)
-            mail.send(msg)
-
+            msg = Message(subject, sender=email, recipients=recipient)
+            msg.body=message
+            thr = Thread(target=send_async_email, args=[app, msg])
+            thr.start()
         return render_template('index.html')
 
     from . import db
