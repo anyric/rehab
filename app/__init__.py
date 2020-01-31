@@ -9,7 +9,6 @@ from flask_mail import (
     Mail, Message
 )
 
-
 def create_app(test_config=None):
     mail = Mail()
     # create and configure the app
@@ -39,10 +38,6 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    @app.route('/', methods=('GET',))
-    def index():
-        return render_template('index.html')
-
     def send_async_email(app, msg):
         with app.app_context():
             try:
@@ -51,20 +46,28 @@ def create_app(test_config=None):
             except Exception as e:
                 print(str(e))
 
+    @app.route('/', methods=('GET', 'POST'))
+    def index():
+        return render_template('index.html')
 
     @app.route('/send_email', methods=('GET', 'POST'))
     def send_email():
+
         if request.method == 'POST':
             name = request.form['name']
             email = request.form['email']
             subject = request.form['subject']
-            message = 'My name is ' + name + ' and email is ' + email + '\n' +  request.form['message']
+            content = request.form['message']
+            message = 'My name is ' + name + ' and email is ' + email + '\n' +  content
             recipient = os.getenv('MAIL_RECIPIENTS').split(",")
 
-            msg = Message(subject, sender=email, recipients=recipient)
-            msg.body=message
-            thr = Thread(target=send_async_email, args=[app, msg])
-            thr.start()
+            if name is not None and email is not None and subject is not None and content is not None:
+                msg = Message(subject, sender=email, recipients=recipient)
+                msg.body=message
+                thr = Thread(target=send_async_email, args=[app, msg])
+                thr.start()
+                return redirect(request.host_url + '#contact')
+
         return render_template('index.html')
 
     from . import db
