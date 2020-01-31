@@ -21,7 +21,7 @@ def create_app(test_config=None):
     app.config['MAIL_USE_SSL'] = True
     mail.init_app(app)
     app.config.from_mapping(
-        SECRET_KEY='q!omqo&mqomq*omomdhdhdhj@kejsnkfj%',
+        SECRET_KEY= os.getenv('SECRET_KEY'),
         DATABASE=os.path.join(app.instance_path, 'rehab.sqlite'),
     )
 
